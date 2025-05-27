@@ -17,89 +17,94 @@ import { storageService } from './async-storage.service.js'
 
 const PAGE_SIZE = 5
 const DB_KEY = 'locs'
-var gSortBy = { rate: -1 }
+var gSortBy = { creationdate: null, rate: -1 }
 var gFilterBy = { txt: '', minRate: 0 }
 var gPageIdx
 
 _createLocs()
 
 export const locService = {
-    query,
-    getById,
-    remove,
-    save,
-    setFilterBy,
-    setSortBy,
-    getLocCountByRateMap
+  query,
+  getById,
+  remove,
+  save,
+  setFilterBy,
+  setSortBy,
+  getLocCountByRateMap,
 }
 
 function query() {
-    return storageService.query(DB_KEY)
-        .then(locs => {
-            if (gFilterBy.txt) {
-                const regex = new RegExp(gFilterBy.txt, 'i')
-                locs = locs.filter(loc => regex.test(loc.name))
-            }
-            if (gFilterBy.minRate) {
-                locs = locs.filter(loc => loc.rate >= gFilterBy.minRate)
-            }
+  return storageService.query(DB_KEY).then((locs) => {
+    console.log(locs)
 
-            // No paging (unused)
-            if (gPageIdx !== undefined) {
-                const startIdx = gPageIdx * PAGE_SIZE
-                locs = locs.slice(startIdx, startIdx + PAGE_SIZE)
-            }
+    if (gFilterBy.txt) {
+      const regex = new RegExp(gFilterBy.txt, 'i')
+      locs = locs.filter((loc) => regex.test(loc.name))
+    }
+    if (gFilterBy.minRate) {
+      locs = locs.filter((loc) => loc.rate >= gFilterBy.minRate)
+    }
 
-            if (gSortBy.rate !== undefined) {
-                locs.sort((p1, p2) => (p1.rate - p2.rate) * gSortBy.rate)
-            } else if (gSortBy.name !== undefined) {
-                locs.sort((p1, p2) => p1.name.localeCompare(p2.name) * gSortBy.name)
-            }
+    // No paging (unused)
+    if (gPageIdx !== undefined) {
+      const startIdx = gPageIdx * PAGE_SIZE
+      locs = locs.slice(startIdx, startIdx + PAGE_SIZE)
+    }
 
-            return locs
-        })
+    if (gSortBy.rate !== undefined) {
+      locs.sort((p1, p2) => (p1.rate - p2.rate) * gSortBy.rate)
+    } else if (gSortBy.name !== undefined) {
+      locs.sort((p1, p2) => p1.name.localeCompare(p2.name) * gSortBy.name)
+    } else if (gSortBy.creationdate) {
+      locs.sort((p1, p2) => p1.createdAt.localeCompare(p2.createdAt) * gSortBy.createdAt)
+    }
+
+    return locs
+  })
 }
 
 function getById(locId) {
-    return storageService.get(DB_KEY, locId)
+  return storageService.get(DB_KEY, locId)
 }
 
 function remove(locId) {
-    return storageService.remove(DB_KEY, locId)
+  return storageService.remove(DB_KEY, locId)
 }
 
 function save(loc) {
-    if (loc.id) {
-        loc.updatedAt = Date.now()
-        return storageService.put(DB_KEY, loc)
-    } else {
-        loc.createdAt = loc.updatedAt = Date.now()
-        return storageService.post(DB_KEY, loc)
-    }
+  if (loc.id) {
+    loc.updatedAt = Date.now()
+    return storageService.put(DB_KEY, loc)
+  } else {
+    loc.createdAt = loc.updatedAt = Date.now()
+    return storageService.post(DB_KEY, loc)
+  }
 }
 
 function setFilterBy(filterBy = {}) {
-    if (filterBy.txt !== undefined) gFilterBy.txt = filterBy.txt
-    if (filterBy.minRate !== undefined && !isNaN(filterBy.minRate)) gFilterBy.minRate = filterBy.minRate
-    return gFilterBy
+  if (filterBy.txt !== undefined) gFilterBy.txt = filterBy.txt
+  if (filterBy.minRate !== undefined && !isNaN(filterBy.minRate)) gFilterBy.minRate = filterBy.minRate
+  return gFilterBy
 }
 
 function getLocCountByRateMap() {
-    return storageService.query(DB_KEY)
-        .then(locs => {
-            const locCountByRateMap = locs.reduce((map, loc) => {
-                if (loc.rate > 4) map.high++
-                else if (loc.rate >= 3) map.medium++
-                else map.low++
-                return map
-            }, { high: 0, medium: 0, low: 0 })
-            locCountByRateMap.total = locs.length
-            return locCountByRateMap
-        })
+  return storageService.query(DB_KEY).then((locs) => {
+    const locCountByRateMap = locs.reduce(
+      (map, loc) => {
+        if (loc.rate > 4) map.high++
+        else if (loc.rate >= 3) map.medium++
+        else map.low++
+        return map
+      },
+      { high: 0, medium: 0, low: 0 }
+    )
+    locCountByRateMap.total = locs.length
+    return locCountByRateMap
+  })
 }
 
 function setSortBy(sortBy = {}) {
-    gSortBy = sortBy
+  gSortBy = sortBy
 }
 
 function _createLocs() {
