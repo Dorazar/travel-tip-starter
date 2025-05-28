@@ -17,7 +17,10 @@ window.app = {
   onSetSortBy,
   onSetFilterBy,
   onSaveLoc,
+  onChangeColorTheme,
 }
+
+var gUserPos = {}
 
 function onInit() {
   getFilterByFromQueryParams()
@@ -37,13 +40,19 @@ function onInit() {
 function renderLocs(locs) {
   const selectedLocId = getLocIdFromQueryParams()
 
+  var distance = ''
   var strHTML = locs
     .map((loc) => {
       const className = loc.id === selectedLocId ? 'active' : ''
+      if (gUserPos.lat && gUserPos.lng) {
+        distance = 'Distance: ' + utilService.getDistance(gUserPos, locs[0].geo, 'K') + ' KM'
+      }
+
       return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
+                <span>${distance}</span>
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
@@ -163,6 +172,8 @@ function onPanToUserPos() {
     .getUserPosition()
     .then((latLng) => {
       mapService.panTo({ ...latLng, zoom: 15 })
+      gUserPos = latLng
+      // console.log(gUserPos)
       unDisplayLoc()
       loadAndRenderLocs()
       flashMsg(`You are at Latitude: ${latLng.lat} Longitude: ${latLng.lng}`)
@@ -328,16 +339,14 @@ function handleStats(stats, selector) {
   const style = `background-image: conic-gradient(${colorsStr})`
   elPie.style = style
 
-  const ledendHTML = labels
-    .map((label, idx) => {
-      return `
+    const ledendHTML = labels.map((label, idx) => {
+        return `
                 <li>
                     <span class="pie-label" style="background-color:${colors[idx]}"></span>
                     ${label} (${stats[label]})
                 </li>
             `
-    })
-    .join('')
+    }).join('')
 
   const elLegend = document.querySelector(`.${selector} .legend`)
   elLegend.innerHTML = ledendHTML
@@ -351,4 +360,9 @@ function cleanStats(stats) {
     return acc
   }, [])
   return cleanedStats
+}
+
+function onChangeColorTheme() {
+  const body = document.body;
+  body.classList.toggle('theme2')
 }
