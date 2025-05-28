@@ -31,12 +31,11 @@ export const locService = {
   setFilterBy,
   setSortBy,
   getLocCountByRateMap,
+  getLocCountByUpdateMap,
 }
 
 function query() {
   return storageService.query(DB_KEY).then((locs) => {
-    
-
     if (gFilterBy.txt) {
       const regex = new RegExp(gFilterBy.txt, 'i')
       locs = locs.filter((loc) => regex.test(loc.name) || regex.test(loc.geo.address))
@@ -57,9 +56,9 @@ function query() {
     } else if (gSortBy.name !== undefined) {
       locs.sort((p1, p2) => p1.name.localeCompare(p2.name) * gSortBy.name)
     } else if (gSortBy.creationDate !== undefined) {
-      console.log(gSortBy.creationDate);
-      
-      locs.sort((p1, p2) => (p1.createdAt - p2.createdAt)*gSortBy.creationDate)
+      console.log(gSortBy.creationDate)
+
+      locs.sort((p1, p2) => (p1.createdAt - p2.createdAt) * gSortBy.creationDate)
     }
 
     return locs
@@ -102,9 +101,28 @@ function getLocCountByRateMap() {
       { high: 0, medium: 0, low: 0 }
     )
     locCountByRateMap.total = locs.length
+    console.log(locCountByRateMap)
     return locCountByRateMap
   })
 }
+
+function getLocCountByUpdateMap() {
+  return storageService.query(DB_KEY).then((locs) => {
+    const locCountByUpdateMap = locs.reduce(
+      (map, loc) => {
+        if (Date.now() - loc.updatedAt <= 1000 * 60 * 60 * 24 && loc.createdAt !== loc.updatedAt) map.today++
+        else if (Date.now() - loc.updatedAt > 1000 * 60 * 60 * 24) map.past++
+        else if (loc.createdAt === loc.updatedAt) map.never++
+        return map
+      },
+      { today: 0, past: 0, never: 0 }
+    )
+    locCountByUpdateMap.total = locs.length
+
+    return locCountByUpdateMap
+  })
+}
+
 
 function setSortBy(sortBy = {}) {
   gSortBy = sortBy
