@@ -16,6 +16,7 @@ window.app = {
   onShareLoc,
   onSetSortBy,
   onSetFilterBy,
+  onChangeColorTheme,
 }
 
 var gUserPos = {}
@@ -43,7 +44,7 @@ function renderLocs(locs) {
     .map((loc) => {
       const className = loc.id === selectedLocId ? 'active' : ''
       if (gUserPos.lat && gUserPos.lng) {
-        distance ='Distance: ' + utilService.getDistance(gUserPos, locs[0].geo, 'K') +' KM'
+        distance = 'Distance: ' + utilService.getDistance(gUserPos, locs[0].geo, 'K') + ' KM'
       }
 
       return `
@@ -334,4 +335,9 @@ function cleanStats(stats) {
     return acc
   }, [])
   return cleanedStats
+}
+
+function onChangeColorTheme() {
+  const body = document.body;
+  body.classList.toggle('theme2')
 }

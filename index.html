@@ -19,6 +19,7 @@
             <input name="loc-copier" />
         </section>
         <form class="form-search" onsubmit="app.onSearchAddress(event)">
+            <button type="button" class="toggle-theme-btn" onclick="app.onChangeColorTheme()">🎨</button>
             <input type="text" name="address" placeholder="Search address" />
             <button title="Search">🔍</button>
             <button type="button" title="My Position" onclick="app.onPanToUserPos()" class="btn-user-pos">&nbsp;
