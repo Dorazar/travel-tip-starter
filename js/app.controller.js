@@ -18,6 +18,8 @@ window.app = {
   onSetFilterBy,
 }
 
+var gUserPos = {}
+
 function onInit() {
   getFilterByFromQueryParams()
   loadAndRenderLocs()
@@ -36,13 +38,19 @@ function onInit() {
 function renderLocs(locs) {
   const selectedLocId = getLocIdFromQueryParams()
 
+  var distance = ''
   var strHTML = locs
     .map((loc) => {
       const className = loc.id === selectedLocId ? 'active' : ''
+      if (gUserPos.lat && gUserPos.lng) {
+        distance ='Distance: ' + utilService.getDistance(gUserPos, locs[0].geo, 'K') +' KM'
+      }
+
       return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
+                <span>${distance}</span>
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
@@ -136,6 +144,8 @@ function onPanToUserPos() {
     .getUserPosition()
     .then((latLng) => {
       mapService.panTo({ ...latLng, zoom: 15 })
+      gUserPos = latLng
+      // console.log(gUserPos)
       unDisplayLoc()
       loadAndRenderLocs()
       flashMsg(`You are at Latitude: ${latLng.lat} Longitude: ${latLng.lng}`)
@@ -277,51 +287,51 @@ function renderLocStats() {
 }
 
 function handleStats(stats, selector) {
-    // stats = { low: 37, medium: 11, high: 100, total: 148 }
-    // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
-    const labels = cleanStats(stats)
-    const colors = utilService.getColors()
+  // stats = { low: 37, medium: 11, high: 100, total: 148 }
+  // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
+  const labels = cleanStats(stats)
+  const colors = utilService.getColors()
 
-    var sumPercent = 0
-    var colorsStr = `${colors[0]} ${0}%, `
-    labels.forEach((label, idx) => {
-        if (idx === labels.length - 1) return
-        const count = stats[label]
-        const percent = Math.round((count / stats.total) * 100, 2)
-        sumPercent += percent
-        colorsStr += `${colors[idx]} ${sumPercent}%, `
-        if (idx < labels.length - 1) {
-            colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
-        }
-    })
+  var sumPercent = 0
+  var colorsStr = `${colors[0]} ${0}%, `
+  labels.forEach((label, idx) => {
+    if (idx === labels.length - 1) return
+    const count = stats[label]
+    const percent = Math.round((count / stats.total) * 100, 2)
+    sumPercent += percent
+    colorsStr += `${colors[idx]} ${sumPercent}%, `
+    if (idx < labels.length - 1) {
+      colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
+    }
+  })
 
-    colorsStr += `${colors[labels.length - 1]} ${100}%`
-    // Example:
-    // colorsStr = `purple 0%, purple 33%, blue 33%, blue 67%, red 67%, red 100%`
+  colorsStr += `${colors[labels.length - 1]} ${100}%`
+  // Example:
+  // colorsStr = `purple 0%, purple 33%, blue 33%, blue 67%, red 67%, red 100%`
 
-    const elPie = document.querySelector(`.${selector} .pie`)
-    const style = `background-image: conic-gradient(${colorsStr})`
-    elPie.style = style
+  const elPie = document.querySelector(`.${selector} .pie`)
+  const style = `background-image: conic-gradient(${colorsStr})`
+  elPie.style = style
 
-    const ledendHTML = labels.map((label, idx) => {
-        return `
+  const ledendHTML = labels.map((label, idx) => {
+    return `
                 <li>
                     <span class="pie-label" style="background-color:${colors[idx]}"></span>
                     ${label} (${stats[label]})
                 </li>
             `
-    }).join('')
+  }).join('')
 
-    const elLegend = document.querySelector(`.${selector} .legend`)
-    elLegend.innerHTML = ledendHTML
+  const elLegend = document.querySelector(`.${selector} .legend`)
+  elLegend.innerHTML = ledendHTML
 }
 
 function cleanStats(stats) {
-    const cleanedStats = Object.keys(stats).reduce((acc, label) => {
-        if (label !== 'total' && stats[label]) {
-            acc.push(label)
-        }
-        return acc
-    }, [])
-    return cleanedStats
+  const cleanedStats = Object.keys(stats).reduce((acc, label) => {
+    if (label !== 'total' && stats[label]) {
+      acc.push(label)
+    }
+    return acc
+  }, [])
+  return cleanedStats
 }
