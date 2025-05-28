@@ -4,7 +4,7 @@ import { mapService } from './services/map.service.js'
 
 window.onload = onInit
 
-// To make things easier in this project structure 
+// To make things easier in this project structure
 // functions that are called from DOM are defined on a global app object
 window.app = {
   onRemoveLoc,
@@ -16,6 +16,7 @@ window.app = {
   onShareLoc,
   onSetSortBy,
   onSetFilterBy,
+  onSaveLoc,
 }
 
 function onInit() {
@@ -100,17 +101,43 @@ function onSearchAddress(ev) {
 }
 
 function onAddLoc(geo) {
-  const locName = prompt('Loc name', geo.address || 'Just a place')
-  if (!locName) return
+
+  // if (!locName) return
+
+  const elModal = document.querySelector('.modal')
+  elModal.dataset.geo = JSON.stringify(geo)
+
+  let elLocNameInput = document.querySelector('.address-input')
+  elLocNameInput.value = geo.address
+
+  elModal.showModal()
+}
+
+function onSaveLoc(ev) {
+  ev.preventDefault()
+
+  const elModal = document.querySelector('.modal')
+  const elInputId = document.querySelector('input[name=id]')
+  const elInputName = document.querySelector('.address-input')
+  const elInputRate = document.querySelector('.rate-input')
+
+  if (!elInputName) return
+  console.log(elInputId.value)
+  console.log(elInputName.value)
+  console.log(elInputRate.value)
 
   const loc = {
-    name: locName,
-    rate: +prompt(`Rate (1-5)`, '3'),
-    geo,
+    id: elInputId.value,
+    name: elInputName.value,
+    rate: elInputRate.value,
   }
+
+  if (!loc.id) loc.geo = JSON.parse(elModal.dataset.geo)
+
   locService
     .save(loc)
     .then((savedLoc) => {
+      elModal.close()
       flashMsg(`Added Location (id: ${savedLoc.id})`)
       utilService.updateQueryParams({ locId: savedLoc.id })
       loadAndRenderLocs()
@@ -148,20 +175,18 @@ function onPanToUserPos() {
 
 function onUpdateLoc(locId) {
   locService.getById(locId).then((loc) => {
-    const rate = prompt('New rate?', loc.rate)
-    if (rate && rate !== loc.rate) {
-      loc.rate = rate
-      locService
-        .save(loc)
-        .then((savedLoc) => {
-          flashMsg(`Rate was set to: ${savedLoc.rate}`)
-          loadAndRenderLocs()
-        })
-        .catch((err) => {
-          console.error('OOPs:', err)
-          flashMsg('Cannot update location')
-        })
-    }
+    const elModal = document.querySelector('.modal')
+    elModal.dataset.geo = JSON.stringify(loc.geo)
+
+    const elInputId = document.querySelector('input[name=id]')
+    const elInputName = document.querySelector('.address-input')
+    const elInputRate = document.querySelector('.rate-input')
+
+    elInputId.value = loc.id
+    elInputName.value = loc.name
+    elInputRate.value = loc.rate
+
+    elModal.showModal()
   })
 }
 
@@ -277,51 +302,53 @@ function renderLocStats() {
 }
 
 function handleStats(stats, selector) {
-    // stats = { low: 37, medium: 11, high: 100, total: 148 }
-    // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
-    const labels = cleanStats(stats)
-    const colors = utilService.getColors()
+  // stats = { low: 37, medium: 11, high: 100, total: 148 }
+  // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
+  const labels = cleanStats(stats)
+  const colors = utilService.getColors()
 
-    var sumPercent = 0
-    var colorsStr = `${colors[0]} ${0}%, `
-    labels.forEach((label, idx) => {
-        if (idx === labels.length - 1) return
-        const count = stats[label]
-        const percent = Math.round((count / stats.total) * 100, 2)
-        sumPercent += percent
-        colorsStr += `${colors[idx]} ${sumPercent}%, `
-        if (idx < labels.length - 1) {
-            colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
-        }
-    })
+  var sumPercent = 0
+  var colorsStr = `${colors[0]} ${0}%, `
+  labels.forEach((label, idx) => {
+    if (idx === labels.length - 1) return
+    const count = stats[label]
+    const percent = Math.round((count / stats.total) * 100, 2)
+    sumPercent += percent
+    colorsStr += `${colors[idx]} ${sumPercent}%, `
+    if (idx < labels.length - 1) {
+      colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
+    }
+  })
 
-    colorsStr += `${colors[labels.length - 1]} ${100}%`
-    // Example:
-    // colorsStr = `purple 0%, purple 33%, blue 33%, blue 67%, red 67%, red 100%`
+  colorsStr += `${colors[labels.length - 1]} ${100}%`
+  // Example:
+  // colorsStr = `purple 0%, purple 33%, blue 33%, blue 67%, red 67%, red 100%`
 
-    const elPie = document.querySelector(`.${selector} .pie`)
-    const style = `background-image: conic-gradient(${colorsStr})`
-    elPie.style = style
+  const elPie = document.querySelector(`.${selector} .pie`)
+  const style = `background-image: conic-gradient(${colorsStr})`
+  elPie.style = style
 
-    const ledendHTML = labels.map((label, idx) => {
-        return `
+  const ledendHTML = labels
+    .map((label, idx) => {
+      return `
                 <li>
                     <span class="pie-label" style="background-color:${colors[idx]}"></span>
                     ${label} (${stats[label]})
                 </li>
             `
-    }).join('')
+    })
+    .join('')
 
-    const elLegend = document.querySelector(`.${selector} .legend`)
-    elLegend.innerHTML = ledendHTML
+  const elLegend = document.querySelector(`.${selector} .legend`)
+  elLegend.innerHTML = ledendHTML
 }
 
 function cleanStats(stats) {
-    const cleanedStats = Object.keys(stats).reduce((acc, label) => {
-        if (label !== 'total' && stats[label]) {
-            acc.push(label)
-        }
-        return acc
-    }, [])
-    return cleanedStats
+  const cleanedStats = Object.keys(stats).reduce((acc, label) => {
+    if (label !== 'total' && stats[label]) {
+      acc.push(label)
+    }
+    return acc
+  }, [])
+  return cleanedStats
 }

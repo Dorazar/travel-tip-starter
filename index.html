@@ -76,6 +76,18 @@
     hidden
     ></pre>
     <div class="user-msg"></div>
+
+    <dialog class="modal">
+        <form onsubmit="app.onSaveLoc(event)">
+            <input name="id" type="hidden">
+            <label for="address">Location:<input class="address-input" type="text"></label>
+            <label for="rate">Rate:<input class="rate-input" type="number" value=3 ></label>
+            <button>Save</button>
+        </form>
+    </dialog>
+
+
+
     <script type="module" src="js/app.controller.js"></script>
 </body>
 
